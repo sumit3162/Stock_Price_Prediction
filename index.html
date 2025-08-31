@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Prediction Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #3498db;
+            --text: #ecf0f1;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --light-bg: #f5f6fa;
+            --dark-bg: #1e272e;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--dark-bg), #1a1a2e);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            grid-template-rows: 70px 1fr auto;
+            grid-template-areas: 
+                "sidebar header"
+                "sidebar main"
+                "sidebar footer";
+            min-height: 100vh;
+        }
+        
+        /* Header Styles */
+        .header {
+            grid-area: header;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 100;
+        }
+        
+        .search-container {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 5px 15px;
+            width: 300px;
+        }
+        
+        .search-container input {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            padding: 8px;
+            width: 100%;
+            outline: none;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            grid-area: sidebar;
+            background: var(--primary);
+            padding: 20px 0;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            z-index: 200;
+        }
+        
+        .logo {
+            padding: 0 20px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .logo h1 {
+            font-size: 24px;
+            color: var(--accent);
+        }
+        
+        .logo span {
+            color: var(--text);
+        }
+        
+        .menu-item {
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            color: var(--text);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .menu-item:hover, .menu-item.active {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid var(--accent);
+            color: var(--accent);
+        }
+        
+        .menu-item i {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        /* Main Content Styles */
+        .main {
+            grid-area: main;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto 1fr 1fr;
+            gap: 20px;
+            grid-template-areas: 
+                "metrics metrics"
+                "chart notice"
+                "inputs outputs";
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.5s ease;
+            transition: transform 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        
+        /* Metrics Card */
+        .metrics {
+            grid-area: metrics;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .metric {
+            text-align: center;
+            padding: 15px;
+            flex: 1;
+            margin: 0 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .metric:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 10px 0;
+            color: var(--success);
+        }
+        
+        .metric-title {
+            font-size: 14px;
+            color: #aaa;
+        }
+        
+        /* Chart Card */
+        .chart-container {
+            grid-area: chart;
+            height: 300px;
+        }
+        
+        /* Notice Board */
+        .notice-board {
+            grid-area: notice;
+        }
+        
+        .notice-list {
+            list-style: none;
+        }
+        
+        .notice-item {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+        }
+        
+        .notice-item:last-child {
+            border-bottom: none;
+        }
+        
+        .notice-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-size: 12px;
+        }
+        
+        .notice-content {
+            flex: 1;
+        }
+        
+        .notice-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .notice-date {
+            font-size: 12px;
+            color: #aaa;
+        }
+        
+        /* Inputs and Outputs */
+        .inputs {
+            grid-area: inputs;
+        }
+        
+        .outputs {
+            grid-area: outputs;
+        }
+        
+        .data-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .data-value {
+            color: var(--accent);
+        }
+        
+        /* Footer */
+        .footer {
+            grid-area: footer;
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            font-size: 14px;
+            color: #aaa;
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            margin-right: 5px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 992px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "header"
+                    "main"
+                    "footer";
+            }
+            
+            .sidebar {
+                display: none;
+            }
+            
+            .main {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "metrics"
+                    "chart"
+                    "notice"
+                    "inputs"
+                    "outputs";
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="search-container">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search stocks...">
+            </div>
+            <div class="user-profile">
+                <i class="fas fa-bell"></i>
+                <img src="https://ui-avatars.com/api/?name=User&background=3498db&color=fff" alt="User" class="user-avatar">
+            </div>
+        </header>
+        
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h1>STOCK<span>AI</span></h1>
+                <p>Machine Learning Platform</p>
+            </div>
+            <a href="#" class="menu-item active">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="menu-item">
+                <i class="fas fa-brain"></i>
+                <span>Models</span>
+            </a>
+            <a href="#" class="menu-item">
+                <i class="fas fa-database"></i>
+                <span>Data</span>
+            </a>
+            <a href="#" class="menu-item">
+                <i class="fas fa-sliders-h"></i>
+                <span>Parameters</span>
+            </a>
+            <a href="#" class="menu-item">
+                <i class="fas fa-chart-bar"></i>
+                <span>Visualization</span>
+            </a>
+            <a href="#" class="menu-item">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Metrics -->
+            <div class="metrics card">
+                <div class="metric">
+                    <div class="metric-title">Accuracy Score</div>
+                    <div class="metric-value">87.2%</div>
+                    <div class="metric-change"><i class="fas fa-arrow-up"></i> 2.4%</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-title">R2 Score</div>
+                    <div class="metric-value">-1.496</div>
+                    <div class="metric-change"><i class="fas fa-arrow-down"></i> 0.32</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-title">Prediction Horizon</div>
+                    <div class="metric-value">30 Days</div>
+                    <div class="metric-change"><i class="fas fa-clock"></i></div>
+                </div>
+                <div class="metric">
+                    <div class="metric-title">Model Status</div>
+                    <div class="metric-value"><span class="pulse"></span> Active</div>
+                    <div class="metric-change">Training: 94%</div>
+                </div>
+            </div>
+            
+            <!-- Chart -->
+            <div class="card chart-container">
+                <div class="card-header">
+                    <div class="card-title">Stock Price Prediction</div>
+                    <div class="card-actions">
+                        <select id="chart-type">
+                            <option>7 Days</option>
+                            <option selected>30 Days</option>
+                            <option>90 Days</option>
+                        </select>
+                    </div>
+                </div>
+                <canvas id="stock-chart"></canvas>
+            </div>
+            
+            <!-- Notice Board -->
+            <div class="card notice-board">
+                <div class="card-header">
+                    <div class="card-title">Notification Center</div>
+                    <div class="card-actions">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                </div>
+                <ul class="notice-list">
+                    <li class="notice-item">
+                        <div class="notice-icon">
+                            <i class="fas fa-sync"></i>
+                        </div>
+                        <div class="notice-content">
+                            <div class="notice-title">Model Retraining Completed</div>
+                            <div class="notice-date">10 minutes ago</div>
+                        </div>
+                    </li>
+                    <li class="notice-item">
+                        <div class="notice-icon" style="background: var(--warning);">
+                            <i class="fas fa-exclamation"></i>
+                        </div>
+                        <div class="notice-content">
+                            <div class="notice-title">New Data Available for AAPL</div>
+                            <div class="notice-date">45 minutes ago</div>
+                        </div>
+                    </li>
+                    <li class="notice-item">
+                        <div class="notice-icon" style="background: var(--danger);">
+                            <i class="fas fa-bug"></i>
+                        </div>
+                        <div class="notice-content">
+                            <div class="notice-title">Prediction Error Rate Increased</div>
+                            <div class="notice-date">2 hours ago</div>
+                        </div>
+                    </li>
+                    <li class="notice-item">
+                        <div class="notice-icon" style="background: var(--success);">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="notice-content">
+                            <div class="notice-title">System Update Completed</div>
+                            <div class="notice-date">Yesterday</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Inputs -->
+            <div class="card inputs">
+                <div class="card-header">
+                    <div class="card-title">Input Parameters</div>
+                    <div class="card-actions">
+                        <i class="fas fa-sliders-h"></i>
+                    </div>
+                </div>
+                <div class="data-item">
+                    <div class="data-key">Input Numbers:</div>
+                    <div class="data-value">0, 1, 2, ...</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-key">Input Numbers:</div>
+                    <div class="data-value">10, 94, ...</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-key">Input Numbers:</div>
+                    <div class="data-value">10, 92, ...</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-key">Input Numbers:</div>
+                    <div class="data-value">0, 50, ...</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-key">Input Numbers:</div>
+                    <div class="data-value">100, 150, ...</div>
+                </div>
+            </div>
+            
+            <!-- Outputs -->
+            <div class="card outputs">
+                <div class="card-header">
+                    <div class="card-title">Output Results</div>
+                    <div class="card-actions">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                </div>
+                <div class="data-item">
+                    <div class="data-key">Output Numbers:</div>
+                    <div class="data-value">0, 1, 2, ...</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-key">Output Numbers:</div>
+                    <div class="data-value">0, 1, 2, ...</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-key">Output Numbers:</div>
+                    <div class="data-value">0, 1, 2, ...</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-key">Accuracy Score:</div>
+                    <div class="data-value">-1.4962106743738226</div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="footer">
+            <p>© 2023 Stock Prediction Dashboard | Machine Learning Model v2.1 | Last Updated: Today</p>
+        </footer>
+    </div>
+
+    <script>
+        // Chart initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('stock-chart').getContext('2d');
+            
+            // Sample data for the chart
+            const dates = [];
+            const actualData = [];
+            const predictedData = [];
+            
+            // Generate sample data
+            for (let i = 0; i < 30; i++) {
+                dates.push(`Day ${i+1}`);
+                actualData.push(150 + Math.sin(i * 0.3) * 20 + Math.random() * 10);
+                predictedData.push(150 + Math.sin(i * 0.3) * 20 + Math.random() * 8);
+            }
+            
+            // Create chart
+            const stockChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: 'Actual Price',
+                            data: actualData,
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Predicted Price',
+                            data: predictedData,
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Stock Price Prediction',
+                            color: '#ecf0f1'
+                        },
+                        legend: {
+                            labels: {
+                                color: '#ecf0f1'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#ecf0f1'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#ecf0f1'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Simulate live data updates
+            setInterval(() => {
+                // Remove first data point and add new one at the end
+                stockChart.data.labels.push(`Day ${stockChart.data.labels.length + 1}`);
+                stockChart.data.labels.shift();
+                
+                stockChart.data.datasets[0].data.push(150 + Math.sin(stockChart.data.datasets[0].data.length * 0.3) * 20 + Math.random() * 10);
+                stockChart.data.datasets[0].data.shift();
+                
+                stockChart.data.datasets[1].data.push(150 + Math.sin(stockChart.data.datasets[1].data.length * 0.3) * 20 + Math.random() * 8);
+                stockChart.data.datasets[1].data.shift();
+                
+                stockChart.update();
+            }, 3000);
+        });
+    </script>
+</body>
+</html>
